@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Marie - Assistante IA d'Aide Sociale</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            text-align: center;
+            max-width: 600px;
+            width: 100%;
+        }
+        
+        .logo {
+            font-size: 3em;
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+        }
+        
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 1.2em;
+        }
+        
+        .description {
+            color: #555;
+            margin-bottom: 40px;
+            line-height: 1.6;
+            font-size: 1.1em;
+        }
+        
+        .voice-button {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            border-radius: 50px;
+            padding: 20px 40px;
+            font-size: 1.3em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+            margin: 10px;
+        }
+        
+        .voice-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 30px rgba(102, 126, 234, 0.4);
+        }
+        
+        .voice-button:active {
+            transform: translateY(0);
+        }
+        
+        .voice-button.listening {
+            background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+            animation: pulse 1.5s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        
+        .status {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 10px;
+            font-weight: bold;
+            min-height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .status.listening {
+            background: #ffe6e6;
+            color: #d63031;
+        }
+        
+        .status.processing {
+            background: #e6f3ff;
+            color: #0984e3;
+        }
+        
+        .status.speaking {
+            background: #e6ffe6;
+            color: #00b894;
+        }
+        
+        .examples {
+            margin-top: 30px;
+            text-align: left;
+        }
+        
+        .examples h3 {
+            color: #333;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+        
+        .examples ul {
+            list-style: none;
+            padding: 0;
+        }
+        
+        .examples li {
+            background: #f8f9fa;
+            margin: 8px 0;
+            padding: 12px;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+                margin: 10px;
+            }
+            
+            h1 {
+                font-size: 2em;
+            }
+            
+            .voice-button {
+                padding: 15px 30px;
+                font-size: 1.1em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">🤝</div>
+        <h1>Marie</h1>
+        <p class="subtitle">Votre assistante IA d'aide sociale gratuite</p>
+        
+        <p class="description">
+            Bonjour ! Je suis Marie, votre assistante virtuelle spécialisée dans l'aide sociale en France. 
+            Cliquez sur le bouton ci-dessous et parlez-moi de votre situation. 
+            Je vous fournirai des informations personnalisées sur les aides disponibles.
+        </p>
+        
+        <button class="voice-button" id="voiceButton" onclick="toggleVoice()">
+            🎤 Parler à Marie
+        </button>
+        
+        <div class="status" id="status">
+            Cliquez sur le bouton pour commencer
+        </div>
+        
+        <div class="examples">
+            <h3>Exemples de questions :</h3>
+            <ul>
+                <li>"J'ai perdu mon emploi, quelles aides puis-je demander ?"</li>
+                <li>"Je suis étudiant et j'ai des difficultés financières"</li>
+                <li>"Comment obtenir une aide au logement ?"</li>
+                <li>"J'ai des enfants et je suis parent isolé"</li>
+                <li>"Je cherche une aide pour me former professionnellement"</li>
+            </ul>
+        </div>
+    </div>
+    
+    <script src="marie-config.js"></script>
+    <script>
+        let isListening = false;
+        let recognition;
+        let synthesis = window.speechSynthesis;
+        
+        // Initialisation de la reconnaissance vocale
+        if ('webkitSpeechRecognition' in window) {
+            recognition = new webkitSpeechRecognition();
+        } else if ('SpeechRecognition' in window) {
+            recognition = new SpeechRecognition();
+        }
+        
+        if (recognition) {
+            recognition.continuous = false;
+            recognition.interimResults = false;
+            recognition.lang = 'fr-FR';
+            
+            recognition.onstart = function() {
+                updateStatus('Parlez maintenant... Je vous écoute', 'listening');
+                document.getElementById('voiceButton').classList.add('listening');
+                document.getElementById('voiceButton').innerHTML = '🔴 En écoute...';
+            };
+            
+            recognition.onresult = function(event) {
+                const transcript = event.results[0][0].transcript;
+                updateStatus('Traitement de votre demande...', 'processing');
+                processUserInput(transcript);
+            };
+            
+            recognition.onerror = function(event) {
+                updateStatus('Erreur: ' + event.error + '. Réessayez.', '');
+                resetButton();
+            };
+            
+            recognition.onend = function() {
+                resetButton();
+            };
+        }
+        
+        function toggleVoice() {
+            if (!recognition) {
+                alert('La reconnaissance vocale n\'est pas supportée par votre navigateur. Utilisez Chrome ou Edge.');
+                return;
+            }
+            
+            if (isListening) {
+                recognition.stop();
+                isListening = false;
+            } else {
+                recognition.start();
+                isListening = true;
+            }
+        }
+        
+        function updateStatus(message, type) {
+            const status = document.getElementById('status');
+            status.textContent = message;
+            status.className = 'status ' + type;
+        }
+        
+        function resetButton() {
+            const button = document.getElementById('voiceButton');
+            button.classList.remove('listening');
+            button.innerHTML = '🎤 Parler à Marie';
+            isListening = false;
+        }
+        
+        function processUserInput(input) {
+            // Simulation de traitement IA
+            updateStatus('Marie analyse votre situation...', 'processing');
+            
+            setTimeout(() => {
+                const response = generateResponse(input);
+                updateStatus('Marie vous répond...', 'speaking');
+                speakResponse(response);
+            }, 1500);
+        }
+        
+        function generateResponse(input) {
+            const lowerInput = input.toLowerCase();
+            
+            // Logique de réponse simple basée sur les mots-clés
+            if (lowerInput.includes('emploi') || lowerInput.includes('chômage') || lowerInput.includes('travail')) {
+                return "Je comprends votre situation concernant l'emploi. Vous pouvez vous tourner vers Pôle Emploi pour les allocations chômage et l'aide à la recherche d'emploi. Il existe aussi le RSA si vous n'avez pas droit au chômage, ainsi que des formations professionnelles gratuites. Contactez votre conseiller Pôle Emploi ou votre CCAS local pour un accompagnement personnalisé.";
+            }
+            
+            if (lowerInput.includes('logement') || lowerInput.includes('loyer') || lowerInput.includes('apl')) {
+                return "Pour l'aide au logement, vous pouvez demander les APL auprès de la CAF. Il existe aussi le FSL, Fonds de Solidarité Logement, pour les impayés. Si vous cherchez un logement social, inscrivez-vous sur votre commune. En urgence, contactez le 115 ou votre CCAS pour un hébergement temporaire.";
+            }
+            
+            if (lowerInput.includes('étudiant') || lowerInput.includes('études') || lowerInput.includes('université')) {
+                return "En tant qu'étudiant, vous pouvez bénéficier de bourses du CROUS, d'aides d'urgence du FSDIE, et d'APL pour le logement. Il existe aussi des épiceries solidaires et des aides spécifiques de votre université. Contactez le service social de votre établissement.";
+            }
+            
+            if (lowerInput.includes('enfant') || lowerInput.includes('famille') || lowerInput.includes('parent')) {
+                return "Pour les familles, la CAF propose de nombreuses aides : allocations familiales, complément familial, PAJE pour les jeunes enfants. Les parents isolés peuvent bénéficier de l'ASI. Il existe aussi des aides pour la garde d'enfants et des tarifs préférentiels dans les crèches publiques.";
+            }
+            
+            if (lowerInput.includes('formation') || lowerInput.includes('reconversion')) {
+                return "Pour la formation professionnelle, vous avez droit au CPF, Compte Personnel de Formation. Pôle Emploi propose aussi des formations gratuites. Les Régions financent certaines formations qualifiantes. Renseignez-vous auprès de votre conseiller Pôle Emploi ou dans une Mission Locale si vous avez moins de 26 ans.";
+            }
+            
+            // Réponse générale
+            return "Je comprends votre situation. Je vous recommande de contacter votre CCAS local qui pourra évaluer vos droits de manière personnalisée. Vous pouvez aussi appeler le 3939, numéro national d'information sur les droits sociaux. N'hésitez pas à vous rendre en mairie pour être orienté vers les bons services. Chaque situation est unique et mérite un accompagnement adapté.";
+        }
+        
+        function speakResponse(text) {
+            // Arrêter toute synthèse en cours
+            synthesis.cancel();
+            
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'fr-FR';
+            utterance.rate = 0.9;
+            utterance.pitch = 1;
+            
+            utterance.onend = function() {
+                updateStatus('Conversation terminée. Vous pouvez poser une nouvelle question.', '');
+            };
+            
+            utterance.onerror = function() {
+                updateStatus('Erreur de synthèse vocale. Réessayez.', '');
+            };
+            
+            synthesis.speak(utterance);
+        }
+        
+        // Vérification des capacités du navigateur au chargement
+        window.onload = function() {
+            if (!recognition) {
+                updateStatus('⚠️ Reconnaissance vocale non supportée. Utilisez Chrome ou Edge.', '');
+            }
+            
+            if (!synthesis) {
+                updateStatus('⚠️ Synthèse vocale non supportée.', '');
+            }
+        };
+    </script>
+</body>
+</html>
