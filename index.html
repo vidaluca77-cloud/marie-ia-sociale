@@ -115,6 +115,63 @@
             color: #00b894;
         }
         
+        .conversation {
+            margin-top: 20px;
+            text-align: left;
+        }
+        
+        .user-input, .marie-response {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 15px;
+            margin: 10px 0;
+            border-left: 4px solid #667eea;
+        }
+        
+        .marie-response {
+            border-left-color: #00b894;
+        }
+        
+        .user-input h4, .marie-response h4 {
+            margin: 0 0 10px 0;
+            font-size: 1em;
+            color: #333;
+        }
+        
+        .user-input p, .marie-response p {
+            margin: 0;
+            line-height: 1.5;
+            color: #555;
+        }
+        
+        .replay-button {
+            background: #00b894;
+            color: white;
+            border: none;
+            border-radius: 20px;
+            padding: 8px 16px;
+            font-size: 0.9em;
+            cursor: pointer;
+            margin-top: 10px;
+            transition: all 0.3s ease;
+        }
+        
+        .replay-button:hover {
+            background: #00a085;
+            transform: translateY(-1px);
+        }
+        
+        .api-config details {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            border: 1px solid #e9ecef;
+        }
+        
+        .api-config summary {
+            margin-bottom: 0;
+        }
+        
         .examples {
             margin-top: 30px;
             text-align: left;
@@ -160,13 +217,25 @@
     <div class="container">
         <div class="logo">🤝</div>
         <h1>Marie</h1>
-        <p class="subtitle">Votre assistante IA d'aide sociale gratuite</p>
+        <p class="subtitle">Votre assistante sociale IA de Caen</p>
         
         <p class="description">
-            Bonjour ! Je suis Marie, votre assistante virtuelle spécialisée dans l'aide sociale en France. 
+            Bonjour ! Je suis Marie, votre assistante sociale virtuelle spécialisée dans l'aide sociale de Caen et sa région. 
             Cliquez sur le bouton ci-dessous et parlez-moi de votre situation. 
-            Je vous fournirai des informations personnalisées sur les aides disponibles.
+            Je vous fournirai des solutions concrètes avec les contacts locaux.
         </p>
+        
+        <!-- Configuration de l'API OpenAI -->
+        <div class="api-config" id="apiConfig" style="margin-bottom: 20px;">
+            <details>
+                <summary style="cursor: pointer; color: #667eea; font-weight: bold;">⚙️ Configuration OpenAI (optionnel)</summary>
+                <div style="margin-top: 10px; text-align: left;">
+                    <label for="apiKey" style="display: block; margin-bottom: 5px; font-size: 0.9em;">Clé API OpenAI (pour réponses IA avancées) :</label>
+                    <input type="password" id="apiKey" placeholder="sk-..." style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 5px; font-size: 0.9em;">
+                    <p style="font-size: 0.8em; color: #666; margin-top: 5px;">Sans clé API, Marie fonctionne en mode hors ligne avec des réponses préprogrammées.</p>
+                </div>
+            </details>
+        </div>
         
         <button class="voice-button" id="voiceButton" onclick="toggleVoice()">
             🎤 Parler à Marie
@@ -174,6 +243,21 @@
         
         <div class="status" id="status">
             Cliquez sur le bouton pour commencer
+        </div>
+        
+        <!-- Zone d'affichage de la transcription et réponse -->
+        <div class="conversation" id="conversation" style="display: none;">
+            <div class="user-input" id="userInput">
+                <h4>🗣️ Vous avez dit :</h4>
+                <p id="transcription"></p>
+            </div>
+            <div class="marie-response" id="marieResponse">
+                <h4>🤝 Marie répond :</h4>
+                <p id="responseText"></p>
+                <button class="replay-button" id="replayButton" onclick="replayResponse()" style="display: none;">
+                    🔊 Réécouter la réponse
+                </button>
+            </div>
         </div>
         
         <div class="examples">
@@ -193,6 +277,7 @@
         let isListening = false;
         let recognition;
         let synthesis = window.speechSynthesis;
+        let currentResponse = '';
         
         // Initialisation de la reconnaissance vocale
         if ('webkitSpeechRecognition' in window) {
@@ -214,7 +299,8 @@
             
             recognition.onresult = function(event) {
                 const transcript = event.results[0][0].transcript;
-                updateStatus('Traitement de votre demande...', 'processing');
+                displayTranscription(transcript);
+                updateStatus('Marie analyse votre situation...', 'processing');
                 processUserInput(transcript);
             };
             
@@ -232,6 +318,12 @@
             if (!recognition) {
                 alert('La reconnaissance vocale n\'est pas supportée par votre navigateur. Utilisez Chrome ou Edge.');
                 return;
+            }
+            
+            // Récupérer la clé API si fournie
+            const apiKey = document.getElementById('apiKey').value.trim();
+            if (apiKey) {
+                MARIE_CONFIG.openai.apiKey = apiKey;
             }
             
             if (isListening) {
@@ -256,43 +348,47 @@
             isListening = false;
         }
         
-        function processUserInput(input) {
-            // Simulation de traitement IA
-            updateStatus('Marie analyse votre situation...', 'processing');
+        function displayTranscription(text) {
+            const conversation = document.getElementById('conversation');
+            const transcription = document.getElementById('transcription');
             
-            setTimeout(() => {
-                const response = generateResponse(input);
-                updateStatus('Marie vous répond...', 'speaking');
-                speakResponse(response);
-            }, 1500);
+            transcription.textContent = text;
+            conversation.style.display = 'block';
         }
         
-        function generateResponse(input) {
-            const lowerInput = input.toLowerCase();
+        function displayResponse(text) {
+            const responseText = document.getElementById('responseText');
+            const replayButton = document.getElementById('replayButton');
             
-            // Logique de réponse simple basée sur les mots-clés
-            if (lowerInput.includes('emploi') || lowerInput.includes('chômage') || lowerInput.includes('travail')) {
-                return "Je comprends votre situation concernant l'emploi. Vous pouvez vous tourner vers Pôle Emploi pour les allocations chômage et l'aide à la recherche d'emploi. Il existe aussi le RSA si vous n'avez pas droit au chômage, ainsi que des formations professionnelles gratuites. Contactez votre conseiller Pôle Emploi ou votre CCAS local pour un accompagnement personnalisé.";
+            responseText.textContent = text;
+            replayButton.style.display = 'inline-block';
+            currentResponse = text;
+        }
+        
+        function replayResponse() {
+            if (currentResponse) {
+                speakResponse(currentResponse);
             }
+        }
+        
+        async function processUserInput(input) {
+            updateStatus('Marie traite votre demande...', 'processing');
             
-            if (lowerInput.includes('logement') || lowerInput.includes('loyer') || lowerInput.includes('apl')) {
-                return "Pour l'aide au logement, vous pouvez demander les APL auprès de la CAF. Il existe aussi le FSL, Fonds de Solidarité Logement, pour les impayés. Si vous cherchez un logement social, inscrivez-vous sur votre commune. En urgence, contactez le 115 ou votre CCAS pour un hébergement temporaire.";
+            try {
+                // Utiliser la fonction d'analyse qui gère OpenAI et le fallback
+                const response = await analyzeUserInput(input);
+                
+                displayResponse(response);
+                updateStatus('Marie vous répond...', 'speaking');
+                speakResponse(response);
+                
+            } catch (error) {
+                console.error('Erreur lors du traitement:', error);
+                const fallbackResponse = MARIE_CONFIG.messages.defaultResponse;
+                displayResponse(fallbackResponse);
+                updateStatus('Réponse en mode hors ligne', 'speaking');
+                speakResponse(fallbackResponse);
             }
-            
-            if (lowerInput.includes('étudiant') || lowerInput.includes('études') || lowerInput.includes('université')) {
-                return "En tant qu'étudiant, vous pouvez bénéficier de bourses du CROUS, d'aides d'urgence du FSDIE, et d'APL pour le logement. Il existe aussi des épiceries solidaires et des aides spécifiques de votre université. Contactez le service social de votre établissement.";
-            }
-            
-            if (lowerInput.includes('enfant') || lowerInput.includes('famille') || lowerInput.includes('parent')) {
-                return "Pour les familles, la CAF propose de nombreuses aides : allocations familiales, complément familial, PAJE pour les jeunes enfants. Les parents isolés peuvent bénéficier de l'ASI. Il existe aussi des aides pour la garde d'enfants et des tarifs préférentiels dans les crèches publiques.";
-            }
-            
-            if (lowerInput.includes('formation') || lowerInput.includes('reconversion')) {
-                return "Pour la formation professionnelle, vous avez droit au CPF, Compte Personnel de Formation. Pôle Emploi propose aussi des formations gratuites. Les Régions financent certaines formations qualifiantes. Renseignez-vous auprès de votre conseiller Pôle Emploi ou dans une Mission Locale si vous avez moins de 26 ans.";
-            }
-            
-            // Réponse générale
-            return "Je comprends votre situation. Je vous recommande de contacter votre CCAS local qui pourra évaluer vos droits de manière personnalisée. Vous pouvez aussi appeler le 3939, numéro national d'information sur les droits sociaux. N'hésitez pas à vous rendre en mairie pour être orienté vers les bons services. Chaque situation est unique et mérite un accompagnement adapté.";
         }
         
         function speakResponse(text) {
@@ -324,6 +420,9 @@
             if (!synthesis) {
                 updateStatus('⚠️ Synthèse vocale non supportée.', '');
             }
+            
+            // Masquer la conversation au démarrage
+            document.getElementById('conversation').style.display = 'none';
         };
     </script>
 </body>
