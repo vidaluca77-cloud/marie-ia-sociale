@@ -222,20 +222,8 @@
         <p class="description">
             Bonjour ! Je suis Marie, votre assistante sociale virtuelle spécialisée dans l'aide sociale de Caen et sa région. 
             Cliquez sur le bouton ci-dessous et parlez-moi de votre situation. 
-            Je vous fournirai des solutions concrètes avec les contacts locaux.
+            Je vous fournirai des solutions concrètes avec les contacts locaux adaptés à votre demande.
         </p>
-        
-        <!-- Configuration de l'API OpenAI -->
-        <div class="api-config" id="apiConfig" style="margin-bottom: 20px;">
-            <details>
-                <summary style="cursor: pointer; color: #667eea; font-weight: bold;">⚙️ Configuration OpenAI (optionnel)</summary>
-                <div style="margin-top: 10px; text-align: left;">
-                    <label for="apiKey" style="display: block; margin-bottom: 5px; font-size: 0.9em;">Clé API OpenAI (pour réponses IA avancées) :</label>
-                    <input type="password" id="apiKey" placeholder="sk-..." style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 5px; font-size: 0.9em;">
-                    <p style="font-size: 0.8em; color: #666; margin-top: 5px;">Sans clé API, Marie fonctionne en mode hors ligne avec des réponses préprogrammées.</p>
-                </div>
-            </details>
-        </div>
         
         <button class="voice-button" id="voiceButton" onclick="toggleVoice()">
             🎤 Parler à Marie
@@ -300,7 +288,7 @@
             recognition.onresult = function(event) {
                 const transcript = event.results[0][0].transcript;
                 displayTranscription(transcript);
-                updateStatus('Marie analyse votre situation...', 'processing');
+                updateStatus('Marie analyse votre situation avec l\'IA...', 'processing');
                 processUserInput(transcript);
             };
             
@@ -318,12 +306,6 @@
             if (!recognition) {
                 alert('La reconnaissance vocale n\'est pas supportée par votre navigateur. Utilisez Chrome ou Edge.');
                 return;
-            }
-            
-            // Récupérer la clé API si fournie
-            const apiKey = document.getElementById('apiKey').value.trim();
-            if (apiKey) {
-                MARIE_CONFIG.openai.apiKey = apiKey;
             }
             
             if (isListening) {
