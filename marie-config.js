@@ -8,34 +8,10 @@ const MARIE_CONFIG = {
     title: "Assistante sociale IA de Caen",
     description: "Service d'aide sociale virtuel gratuit pour la région de Caen",
     
-    // Configuration OpenAI API
-    openai: {
-        apiUrl: "https://api.openai.com/v1/chat/completions",
-        model: "gpt-3.5-turbo",
-        maxTokens: 150,
-        temperature: 0.7,
-        // La clé API doit être définie par l'utilisateur
-        apiKey: "", // À configurer par l'utilisateur
-        systemPrompt: `Tu es Marie, assistante sociale empathique basée à Caen, en Normandie. Tu aides les personnes en difficulté sociale avec des solutions concrètes et pratiques.
-
-IMPORTANTES CONSIGNES :
-- Réponds en 200 mots maximum
-- Sois empathique et encourageante
-- Donne 2-3 solutions pratiques avec coordonnées locales
-- Utilise un ton professionnel mais chaleureux
-- Finis toujours par un encouragement
-
-SERVICES CAEN PRIORITAIRES :
-- CCAS Caen : 02 31 30 47 90 (aide d'urgence, RSA, accompagnement)
-- Restos du Cœur Caen : 02 31 84 12 34 (aide alimentaire)
-- Secours Populaire Caen : 02 31 86 88 31 (aide générale)
-- CAF Calvados : 32 30 (allocations familiales, logement)
-- Pôle Emploi Caen : 39 49 (emploi, formation)
-
-FORMAT RÉPONSE :
-1. Accueil empathique
-2. 2-3 solutions concrètes avec coordonnées
-3. Encouragement final`
+    // Configuration pour l'IA (gérée côté serveur via Vercel)
+    ai: {
+        enabled: true,
+        fallbackToKeywords: true
     },
     
     // Configuration vocale
@@ -124,7 +100,7 @@ FORMAT RÉPONSE :
     messages: {
         welcome: "Bonjour ! Je suis Marie, votre assistante sociale virtuelle de Caen. Comment puis-je vous aider aujourd'hui ?",
         listening: "Je vous écoute... Parlez maintenant.",
-        processing: "Je traite votre demande...",
+        processing: "Je traite votre demande avec l'intelligence artificielle...",
         speaking: "Marie vous répond...",
         error: "Désolée, je n'ai pas pu comprendre. Pouvez-vous répéter s'il vous plaît ?",
         noSpeech: "Je n'ai pas entendu votre question. Cliquez à nouveau sur le bouton et parlez plus fort.",
@@ -171,34 +147,16 @@ if (typeof module !== 'undefined' && module.exports) {
 // Variable globale pour l'accès depuis index.html
 window.MARIE_CONFIG = MARIE_CONFIG;
 
-// Fonction pour appeler l'API OpenAI
-async function callOpenAI(userMessage) {
-    if (!MARIE_CONFIG.openai.apiKey) {
-        console.log("Clé API OpenAI manquante, utilisation du mode hors ligne");
-        return null;
-    }
-
+// Fonction pour appeler notre API sécurisée
+async function callMarieAI(userMessage) {
     try {
-        const response = await fetch(MARIE_CONFIG.openai.apiUrl, {
+        const response = await fetch('/api/chat', {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${MARIE_CONFIG.openai.apiKey}`
+                'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                model: MARIE_CONFIG.openai.model,
-                messages: [
-                    {
-                        role: "system",
-                        content: MARIE_CONFIG.openai.systemPrompt
-                    },
-                    {
-                        role: "user",
-                        content: userMessage
-                    }
-                ],
-                max_tokens: MARIE_CONFIG.openai.maxTokens,
-                temperature: MARIE_CONFIG.openai.temperature
+                message: userMessage
             })
         });
 
@@ -207,17 +165,22 @@ async function callOpenAI(userMessage) {
         }
 
         const data = await response.json();
-        return data.choices[0].message.content.trim();
+        if (data.success && data.response) {
+            console.log(`Réponse reçue depuis: ${data.source}`);
+            return data.response;
+        } else {
+            throw new Error('Invalid response format');
+        }
     } catch (error) {
-        console.error("Erreur API OpenAI:", error);
+        console.error("Erreur API Marie:", error);
         return null;
     }
 }
 
 // Fonction utilitaire pour analyser le texte utilisateur et générer une réponse
 async function analyzeUserInput(input) {
-    // Essayer d'abord l'API OpenAI
-    const aiResponse = await callOpenAI(input);
+    // Essayer d'abord l'API Marie (qui gère OpenAI en arrière-plan)
+    const aiResponse = await callMarieAI(input);
     if (aiResponse) {
         return aiResponse;
     }
@@ -240,7 +203,7 @@ async function analyzeUserInput(input) {
 
 // Export des fonctions
 window.analyzeUserInput = analyzeUserInput;
-window.callOpenAI = callOpenAI;
+window.callMarieAI = callMarieAI;
 
 console.log("Configuration Marie IA chargée avec succès !");
 console.log("Catégories d'aide disponibles:", Object.keys(MARIE_CONFIG.socialAids));

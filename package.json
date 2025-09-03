@@ -1,0 +1,21 @@
+{
+  "name": "marie-ia-sociale",
+  "version": "1.0.0",
+  "description": "Marie - Assistante sociale IA pour Caen",
+  "main": "index.html",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "scripts": {
+    "dev": "vercel dev",
+    "build": "echo 'No build step required for static site'",
+    "start": "python3 -m http.server 3000"
+  },
+  "keywords": ["ai", "social", "assistant", "caen", "aide-sociale"],
+  "author": "vidaluca77-cloud",
+  "license": "MIT",
+  "dependencies": {},
+  "devDependencies": {
+    "vercel": "^32.0.0"
+  }
+}
